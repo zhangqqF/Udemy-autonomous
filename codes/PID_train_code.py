@@ -40,6 +40,7 @@ t0 = 0
 t_end = 5
 t = np.arange(t0, t_end, dt)
 
+# train重力
 grav = mass_cart*g
 
 
@@ -103,3 +104,8 @@ while(trials > 0):
             e[times][-1] = e[times][-2]
             e_dot[times][-1] = e_dot[times][-2]
             e_int[times][-1] = e_int[times][-2]
+
+        F_a = K_p*e[times][i-1] + K_d*e_dot[times][i-1] + K_i*e_int[times][i-1]
+        F_net = F_a + F_ga_t                                                
+        rail_acce[times][i] = F_net/mass_cart
+        rail_velo[times][i] = rail_velo

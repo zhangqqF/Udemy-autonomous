@@ -1,12 +1,12 @@
 # Applied Control Systems 1: autonomous cars: Math + PID + MPC
 
-> zhangqq
-> Apr 18, 2023
+> zhangqq  
+> Apr 18, 2023  
 > Chongqing
 
 ---
 
-The course in [Udemy](https://www.udemy.com/course/applied-systems-control-for-engineers-modelling-pid-mpc/) or [学术Fun](https://xueshu.fun/1511/)
+The course on [Udemy](https://www.udemy.com/course/applied-systems-control-for-engineers-modelling-pid-mpc/) or [学术Fun](https://xueshu.fun/1511/)
 
 ## Intro to Control - PID Controller
 
