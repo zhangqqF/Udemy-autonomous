@@ -19,6 +19,5 @@ plt.grid(True)
 # plt.show()
 
 
-a = [1,2,2,3,6,9,8]
-
-print(a[:2])
+a = [2, 4]
+print(a-3)
