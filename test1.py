@@ -19,5 +19,8 @@ plt.grid(True)
 # plt.show()
 
 
-a = [2, 4]
-print(a-3)
+a = np.arange(1,4,1)-1
+b = np.zeros((1, 3))
+
+b[0] = a
+print(b)
