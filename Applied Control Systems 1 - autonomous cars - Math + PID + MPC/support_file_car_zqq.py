@@ -131,5 +131,75 @@ class SupportFilesCar:
         Ts = self.Ts
         x_dot = self.x_dot
 
-        A1 = -(2*self.Caf + 2*self.Car) / (self.m * self.x_dot)
+        # 动力学方程矩阵
+        a = -(2*self.Caf + 2*self.Car) / (self.m * self.x_dot)
+        b = ((-2*Caf*lf + 2*Car*lr) / x_dot*m) - x_dot
+        c = (-2*Caf*lf + 2*Car*lr) / x_dot*Iz
+        d = (-2*Caf*lf**2 - 2*Car*lr**2) / x_dot*m
+        e = 2*Caf / m
+        f = 2*Caf*lf / Iz
+
+        # 增加psi_dot和y_dot状态量后的矩阵
+        A = np.array([a, 0, b, 0],
+                     [0, 0, 1, 0],
+                     [c, 0, d, 0],
+                     [1, x_dot, 0, 0])
+        B = np.array([e, 0, f, 0])
+        C = np.array([0, 1, 0, 0],
+                     [0, 0, 0, 1])
+        D = 0
+
+        # 离散化后的矩阵
+        Ad = np.identity(np.size(A, 1)) + Ts*A
+        Bd = Ts*B
+        Cd = C
+        Dd = D
+
+        return Ad, Bd, Cd, Dd
+    
+
+    def mpc_simplification(self, Ad, Bd, Cd, Dd, Hz):
+        '''
+        This function create the compact matrices for Model Predictive Control
+        '''
+        # db  - double bar
+        # dbt - double bar transpose
+        # dc  - double circumflex
+
+        # 构建增广矩阵A_tilde, B_tilde, C_tilde, D_tilde
+        # |Ad  Bd|
+        # |0   I|
+        temp_A_B = np.concatenate((Ad, Bd), axis=1)              # 构造[Ad Bd]矩阵，Ad=4x4, Bd=4x1, temp_A_B=4x5，axis=1列叠加
+        temp_0 = np.zeros((1, np.size(Ad, 1)))                   # 构造0矩阵，0=1xA的列数
+        temp_I = np.identity(np.size(Bd, 1))                     # 构造单位矩阵I, I=B的列数
+        temp_0_I = np.concatenate((temp_0, temp_I), axis=1)      # 构造[0 I]矩阵
+        A_tilde = np.concatenate((temp_A_B, temp_0_I), axis=0)   # 构造A_tilde矩阵，axis=0行叠加
+        B_tilde = np.concatenate((Bd, np.identity(np.size(Bd, 1))), axis=0)
+        C_tilde = np.concatenate((Cd, np.zeros(np.size(Cd, 0), np.size(Bd, 1))))  # 列叠加，所以0矩阵的行数与Cd相同，为与A_tilde列数相同，0矩阵列数等同Bd列数
+        D_tilde = Dd
+
+        Q = self.Q
+        S = self.S
+        R = self.R
+
+        # 误差min矩阵
+        CTQC = np.matmul(np.matmul(np.transpose(C_tilde), Q), C_tilde)  # matmul一次只能算两个吗？
+        CTSC = np.matmul(np.matmul(np.transpose(C_tilde), S), C_tilde)
+        QCT = np.matmul(Q, C_tilde)
+        SC = np.matmul(S, C_tilde)
+
+        Qdb = np.zeros((np.size(CTQC, 0)*Hz), np.size(CTQC, 1)*Hz)      # CTQC行列均乘时间Hz
+        Tdb = np.zeros((np.size(QCT, 0)*Hz), np.size(QCT, 1)*Hz)
+        Rdb = np.zeros((np.size(R, 0)*Hz), np.size(R, 1)*Hz)
+        Cdb = np.zeros((np.size(B_tilde, 0)*Hz), np.size(B_tilde, 1)*Hz)
+        Adc = np.zeros((np.size(A_tilde, 0)*Hz), np.size(A_tilde, 1))   # 注意，列不 x hz
+        for i in range(0, Hz):
+            if i == Hz-1:
+                Qdb[np.size(CTSC, 0)*i: np.size(CTSC, 0)*i + CTSC.shape[0], np.size(CTSC, 1)*i: np.size(CTSC, 1)*i + CTSC.shape[1]] = CTSC
+
+        
+
+
+
+
 

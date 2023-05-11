@@ -1,9 +1,17 @@
 import os
-import glob
+import numpy as np
 
 
 
-for i in glob.glob(r'F:\Applied Control Systems 1 autonomous cars Math + PID + MPC\字幕\3. Vehicle modelling for lateral control using equations of motion/**'):
-    if '-en_US_CN' in i:
-        print(i)
-        os.rename(i, i.replace('l-en_US_CN', ''))
+Ad = np.zeros((4, 4))
+Bd = np.ones((4,1))
+c = np.ones((1,5))
+# c = np.concatenate((a, b), axis=1)
+
+temp1 = np.zeros((np.size(Bd, 1), np.size(Ad, 1)))
+temp2 = np.identity(np.size(Bd, 1))
+temp = np.concatenate((temp1 ,temp2), axis=1)
+
+
+
+print(Bd.shape[1])
