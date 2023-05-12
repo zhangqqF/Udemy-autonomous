@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 
@@ -13,5 +14,13 @@ temp2 = np.identity(np.size(Bd, 1))
 temp = np.concatenate((temp1 ,temp2), axis=1)
 
 
+a = [1,2,3,4]
+print(np.linspace(0, 5, 4))
 
-print(Bd.shape[1])
+xx = np.linspace(-1000, 1000, 5000)
+yy = np.arctan(xx)
+plt.plot(xx, yy)
+# plt.plot(xx, np.linspace(np.pi/2, np.pi/2, 5000))
+# plt.plot(xx, np.linspace(-np.pi/2, -np.pi/2, 5000))
+plt.yticks([-np.pi/2, 0, np.pi/2], [r'$-\frac{\pi}{2}$', 0, 'np.pi/2'])
+plt.show()
