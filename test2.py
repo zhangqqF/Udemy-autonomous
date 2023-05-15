@@ -23,4 +23,7 @@ plt.plot(xx, yy)
 # plt.plot(xx, np.linspace(np.pi/2, np.pi/2, 5000))
 # plt.plot(xx, np.linspace(-np.pi/2, -np.pi/2, 5000))
 plt.yticks([-np.pi/2, 0, np.pi/2], [r'$-\frac{\pi}{2}$', 0, 'np.pi/2'])
-plt.show()
+# plt.show()
+
+a = np.array([[1,2]])
+print(a)

@@ -125,7 +125,7 @@ $$
     a&=-\frac{2C_{Lf}+2C_{Lr}}{\dot{x}m} \\ \\
     b&=\frac{-2C_{Lf}L_{f}+2C_{Lr}L_r}{\dot{x}m}-\dot{x} \\ \\
     c&=\frac{-2C_{Lf}L_{f}+2C_{Lr}L_{r}}{\dot{x}J} \\ \\
-    d&=\bigg(\frac{-2C_{Lf}L_{f}^2-2C_{Lr}L_{r}^2}{\dot{x}J}\bigg)\dot{\varphi} \\ \\
+    d&=\frac{-2C_{Lf}L_{f}^2-2C_{Lr}L_{r}^2}{\dot{x}J} \\ \\
     e&=\frac{2C_{Lf}}{m} \\ \\
     f&=\frac{2C_{Lf}L_{f}}{I}
 \end{aligned}

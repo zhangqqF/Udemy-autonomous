@@ -88,7 +88,7 @@ class SupportFilesCar:
                 bbb = 14
             else:
                 bbb = -14
-            y_1 = aaa * (x + f - 100)**2 + bbb     # parabolic function
+            y_1 = aaa * (x + f - 100)**2 + bbb          # parabolic function
             y_2 = 2 * r * np.sin(2 * np.pi * f * x)     # sinsoidal function
             y = (y_1 + y_2) / 2
         else:
@@ -112,7 +112,7 @@ class SupportFilesCar:
             elif dpsi[i-1] > np.pi:
                 psiInt[i] = psiInt[i-1] + (dpsi[i-1] - 2*np.pi)
             else:
-                psiInt[i] = psiInt[i-1] + psi[i-1]
+                psiInt[i] = psiInt[i-1] + dpsi[i-1]
 
         return psiInt, x, y
     
@@ -142,13 +142,13 @@ class SupportFilesCar:
         f = 2*Caf*lf / Iz
 
         # 增加psi_dot和y_dot状态量后的矩阵
-        A = np.array([a, 0, b, 0],
-                     [0, 0, 1, 0],
-                     [c, 0, d, 0],
-                     [1, x_dot, 0, 0])
-        B = np.array([e, 0, f, 0])
-        C = np.array([0, 1, 0, 0],
-                     [0, 0, 0, 1])
+        A = np.array([[a, 0, b, 0],
+                      [0, 0, 1, 0],
+                      [c, 0, d, 0],
+                      [1, x_dot, 0, 0]])
+        B = np.transpose(np.array([[e, 0, f, 0]]))
+        C = np.array([[0, 1, 0, 0],
+                      [0, 0, 0, 1]])
         D = 0
 
         # 离散化后的矩阵
@@ -177,7 +177,7 @@ class SupportFilesCar:
         temp_0_I = np.concatenate((temp_0, temp_I), axis=1)      # 构造[0 I]矩阵
         A_tilde = np.concatenate((temp_A_B, temp_0_I), axis=0)   # 构造A_tilde矩阵，axis=0行叠加
         B_tilde = np.concatenate((Bd, np.identity(np.size(Bd, 1))), axis=0)
-        C_tilde = np.concatenate((Cd, np.zeros(np.size(Cd, 0), np.size(Bd, 1))))  # 列叠加，所以0矩阵的行数与Cd相同，为与A_tilde列数相同，0矩阵列数等同Bd列数
+        C_tilde = np.concatenate((Cd, np.zeros((np.size(Cd, 0), np.size(Bd, 1)))), axis=1)  # 列叠加，所以0矩阵的行数与Cd相同，为与A_tilde列数相同，0矩阵列数等同Bd列数
         D_tilde = Dd
 
         Q = self.Q
@@ -190,11 +190,11 @@ class SupportFilesCar:
         QC = np.matmul(Q, C_tilde)
         SC = np.matmul(S, C_tilde)
 
-        Q_bbar = np.zeros((np.size(CQC, 0)*Hz), np.size(CQC, 1)*Hz)         # CQC行列均乘时间Hz
-        T_bbar = np.zeros((np.size(QC, 0)*Hz), np.size(QC, 1)*Hz)
-        R_bbar = np.zeros((np.size(R, 0)*Hz), np.size(R, 1)*Hz)
-        C_bbar = np.zeros((np.size(B_tilde, 0)*Hz), np.size(B_tilde, 1)*Hz)
-        A_hhat = np.zeros((np.size(A_tilde, 0)*Hz), np.size(A_tilde, 1))    # 注意，列不 x hz
+        Q_bbar = np.zeros((np.size(CQC, 0)*Hz, np.size(CQC, 1)*Hz))         # CQC行列均乘时间Hz
+        T_bbar = np.zeros((np.size(QC, 0)*Hz, np.size(QC, 1)*Hz))
+        R_bbar = np.zeros((np.size(R, 0)*Hz, np.size(R, 1)*Hz))
+        C_bbar = np.zeros((np.size(B_tilde, 0)*Hz, np.size(B_tilde, 1)*Hz))
+        A_hhat = np.zeros((np.size(A_tilde, 0)*Hz, np.size(A_tilde, 1)))    # 注意，列不 x hz
         for i in range(0, Hz):
             if i == Hz-1: # 最后一项是SC
                 Q_bbar[CSC.shape[0]*i:CSC.shape[0]*(i+1), CSC.shape[1]*i:CSC.shape[1]*(i+1)] = CSC
