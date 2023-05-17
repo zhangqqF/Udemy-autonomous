@@ -192,8 +192,8 @@ class SupportFilesCar:
         Q_bbar = np.zeros((np.size(CQC, 0)*Hz, np.size(CQC, 1)*Hz))         # CQC行列均乘时间Hz
         T_bbar = np.zeros((np.size(QC, 0)*Hz, np.size(QC, 1)*Hz))
         R_bbar = np.zeros((np.size(R, 0)*Hz, np.size(R, 1)*Hz))
-        C_bbar = np.zeros((np.size(B_tilde, 0)*Hz, np.size(B_tilde, 1)*Hz))
-        A_hhat = np.zeros((np.size(A_tilde, 0)*Hz, np.size(A_tilde, 1)))    # 注意，列不 x hz
+        C_bb = np.zeros((np.size(B_tilde, 0)*Hz, np.size(B_tilde, 1)*Hz))
+        A_hh = np.zeros((np.size(A_tilde, 0)*Hz, np.size(A_tilde, 1)))    # 注意，列不 x hz
         for i in range(0, Hz):
             if i == Hz-1: # 最后一项是SC
                 Q_bbar[CSC.shape[0]*i:CSC.shape[0]*(i+1), CSC.shape[1]*i:CSC.shape[1]*(i+1)] = CSC
@@ -207,16 +207,16 @@ class SupportFilesCar:
             for j in range(0, Hz):
                 if j <= i:
                     AB = np.matmul(np.linalg.matrix_power(A_tilde, i-j), B_tilde)
-                    C_bbar[B_tilde.shape[0]*i:B_tilde.shape[0]*(i+1), B_tilde.shape[1]*i:B_tilde.shape[1]*(i+1)] = AB
+                    C_bb[B_tilde.shape[0]*i:B_tilde.shape[0]*(i+1), B_tilde.shape[1]*i:B_tilde.shape[1]*(i+1)] = AB
 
-            A_hhat[A_tilde.shape[0]*i:A_tilde.shape[0]*(i+1), :] = np.linalg.matrix_power(A_tilde, i+1)
+            A_hh[A_tilde.shape[0]*i:A_tilde.shape[0]*(i+1), :] = np.linalg.matrix_power(A_tilde, i+1)
 
-        H_bbar = np.matmul(np.matmul(np.transpose(C_bbar), Q_bbar), C_bbar) + R_bbar
-        AQC = np.matmul(np.matmul(np.transpose(A_hhat), Q_bbar), C_bbar)
-        TC = -np.matmul(T_bbar, C_bbar)
-        F_bbar = np.concatenate((AQC, TC), axis=0)
+        H_bb = np.matmul(np.matmul(np.transpose(C_bb), Q_bbar), C_bb) + R_bbar
+        AQC = np.matmul(np.matmul(np.transpose(A_hh), Q_bbar), C_bb)
+        TC = -np.matmul(T_bbar, C_bb)
+        F_bbt = np.concatenate((AQC, TC), axis=0)
         
-        return H_bbar, F_bbar, C_bbar, A_hhat
+        return H_bb, F_bbt, C_bb, A_hh
     
     def open_loop_new_states(self, states, delta):
         '''
@@ -265,4 +265,77 @@ class SupportFilesCar:
         new_states[3] = y
 
         return new_states
+    
+
+
+
+
+
+
+
+
+
+    def mpc_simplification2(self, Ad, Bd, Cd, Dd, hz):
+        '''This function creates the compact matrices for Model Predictive Control'''
+        # db - double bar
+        # dbt - double bar transpose
+        # dc - double circumflex
+
+        A_aug=np.concatenate((Ad,Bd),axis=1)
+        temp1=np.zeros((np.size(Bd,1),np.size(Ad,1)))
+        temp2=np.identity(np.size(Bd,1))
+        temp=np.concatenate((temp1,temp2),axis=1)
+
+        A_aug=np.concatenate((A_aug,temp),axis=0)
+        B_aug=np.concatenate((Bd,np.identity(np.size(Bd,1))),axis=0)
+        C_aug=np.concatenate((Cd,np.zeros((np.size(Cd,0),np.size(Bd,1)))),axis=1)
+        D_aug=Dd
+
+
+        Q=self.Q
+        S=self.S
+        R=self.R
+
+        CQC=np.matmul(np.transpose(C_aug),Q)
+        CQC=np.matmul(CQC,C_aug)
+
+        CSC=np.matmul(np.transpose(C_aug),S)
+        CSC=np.matmul(CSC,C_aug)
+
+        QC=np.matmul(Q,C_aug)
+        SC=np.matmul(S,C_aug)
+
+
+        Qdb=np.zeros((np.size(CQC,0)*hz,np.size(CQC,1)*hz))
+        Tdb=np.zeros((np.size(QC,0)*hz,np.size(QC,1)*hz))
+        Rdb=np.zeros((np.size(R,0)*hz,np.size(R,1)*hz))
+        Cdb=np.zeros((np.size(B_aug,0)*hz,np.size(B_aug,1)*hz))
+        Adc=np.zeros((np.size(A_aug,0)*hz,np.size(A_aug,1)))
+
+        for i in range(0,hz):
+            if i == hz-1:
+                Qdb[np.size(CSC,0)*i:np.size(CSC,0)*i+CSC.shape[0],np.size(CSC,1)*i:np.size(CSC,1)*i+CSC.shape[1]]=CSC
+                Tdb[np.size(SC,0)*i:np.size(SC,0)*i+SC.shape[0],np.size(SC,1)*i:np.size(SC,1)*i+SC.shape[1]]=SC
+            else:
+                Qdb[np.size(CQC,0)*i:np.size(CQC,0)*i+CQC.shape[0],np.size(CQC,1)*i:np.size(CQC,1)*i+CQC.shape[1]]=CQC
+                Tdb[np.size(QC,0)*i:np.size(QC,0)*i+QC.shape[0],np.size(QC,1)*i:np.size(QC,1)*i+QC.shape[1]]=QC
+
+            Rdb[np.size(R,0)*i:np.size(R,0)*i+R.shape[0],np.size(R,1)*i:np.size(R,1)*i+R.shape[1]]=R
+
+            for j in range(0,hz):
+                if j<=i:
+                    Cdb[np.size(B_aug,0)*i:np.size(B_aug,0)*i+B_aug.shape[0],np.size(B_aug,1)*j:np.size(B_aug,1)*j+B_aug.shape[1]]=np.matmul(np.linalg.matrix_power(A_aug,((i+1)-(j+1))),B_aug)
+
+            Adc[np.size(A_aug,0)*i:np.size(A_aug,0)*i+A_aug.shape[0],0:0+A_aug.shape[1]]=np.linalg.matrix_power(A_aug,i+1)
+
+        Hdb=np.matmul(np.transpose(Cdb),Qdb)
+        Hdb=np.matmul(Hdb,Cdb)+Rdb
+
+        temp=np.matmul(np.transpose(Adc),Qdb)
+        temp=np.matmul(temp,Cdb)
+
+        temp2=np.matmul(-Tdb,Cdb)
+        Fdbt=np.concatenate((temp,temp2),axis=0)
+
+        return Hdb,Fdbt,Cdb,Adc
     

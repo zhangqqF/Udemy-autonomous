@@ -118,7 +118,7 @@ for i in range(0,sim_length-1):
         # in the end of the simulation, the horizon period (hz) starts decreasing.
         # Therefore, the matrices need to be constantly updated in the end of the simulation.
         Hdb,Fdbt,Cdb,Adc=support.mpc_simplification(Ad,Bd,Cd,Dd,hz)
-
+    
     ft=np.matmul(np.concatenate((np.transpose(x_aug_t)[0][0:len(x_aug_t)],r),axis=0),Fdbt)
     du=-np.matmul(np.linalg.inv(Hdb),np.transpose([ft]))
     x_aug_opt=np.matmul(Cdb,du)+np.matmul(Adc,x_aug_t)
@@ -139,33 +139,33 @@ for i in range(0,sim_length-1):
     ######################### PID #############################################
     PID_switch=constants[17]
 
-    if PID_switch==1:
-        if i==0:
-            e_int_pid_yaw=0
-            e_int_pid_Y=0
-        if i>0:
-            e_pid_yaw_im1=psi_ref[i-1]-old_states[1]
-            e_pid_yaw_i=psi_ref[i]-states[1]
-            e_dot_pid_yaw=(e_pid_yaw_i-e_pid_yaw_im1)/Ts
-            e_int_pid_yaw=e_int_pid_yaw+(e_pid_yaw_im1+e_pid_yaw_i)/2*Ts
-            Kp_yaw=constants[18]
-            Kd_yaw=constants[19]
-            Ki_yaw=constants[20]
-            U1_yaw=Kp_yaw*e_pid_yaw_i+Kd_yaw*e_dot_pid_yaw+Ki_yaw*e_int_pid_yaw
+    # if PID_switch==1:
+    #     if i==0:
+    #         e_int_pid_yaw=0
+    #         e_int_pid_Y=0
+    #     if i>0:
+    #         e_pid_yaw_im1=psi_ref[i-1]-old_states[1]
+    #         e_pid_yaw_i=psi_ref[i]-states[1]
+    #         e_dot_pid_yaw=(e_pid_yaw_i-e_pid_yaw_im1)/Ts
+    #         e_int_pid_yaw=e_int_pid_yaw+(e_pid_yaw_im1+e_pid_yaw_i)/2*Ts
+    #         Kp_yaw=constants[18]
+    #         Kd_yaw=constants[19]
+    #         Ki_yaw=constants[20]
+    #         U1_yaw=Kp_yaw*e_pid_yaw_i+Kd_yaw*e_dot_pid_yaw+Ki_yaw*e_int_pid_yaw
 
-            e_pid_Y_im1=Y_ref[i-1]-old_states[3]
-            e_pid_Y_i=Y_ref[i]-states[3]
-            e_dot_pid_Y=(e_pid_Y_i-e_pid_Y_im1)/Ts
-            e_int_pid_Y=e_int_pid_Y+(e_pid_Y_im1+e_pid_Y_i)/2*Ts
-            Kp_Y=constants[21]
-            Kd_Y=constants[22]
-            Ki_Y=constants[23]
-            U1_Y=Kp_Y*e_pid_Y_i+Kd_Y*e_dot_pid_Y+Ki_Y*e_int_pid_Y
+    #         e_pid_Y_im1=Y_ref[i-1]-old_states[3]
+    #         e_pid_Y_i=Y_ref[i]-states[3]
+    #         e_dot_pid_Y=(e_pid_Y_i-e_pid_Y_im1)/Ts
+    #         e_int_pid_Y=e_int_pid_Y+(e_pid_Y_im1+e_pid_Y_i)/2*Ts
+    #         Kp_Y=constants[21]
+    #         Kd_Y=constants[22]
+    #         Ki_Y=constants[23]
+    #         U1_Y=Kp_Y*e_pid_Y_i+Kd_Y*e_dot_pid_Y+Ki_Y*e_int_pid_Y
 
-            U1=U1_yaw+U1_Y
+    #         U1=U1_yaw+U1_Y
 
 
-        old_states=states
+    #     old_states=states
     ######################### PID END #########################################
 
     # Establish the limits for the real inputs (max: pi/6 radians)
