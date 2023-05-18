@@ -9,13 +9,13 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import matplotlib.animation as animation
 import numpy as np
-import support_file_car_zqq as sfc
+import support_files_car as sfc
 
 
 
 support = sfc.SupportFilesCar()     # 实例化类
 Ts = support.Ts                     # 
-Num_state = support.outputs           # number of outputs (psi, y)，状态量个数
+outputs = support.outputs           # number of outputs (psi, y)，状态量个数
 hz = support.hz                     # horizon prediction period，预测周期
 x_dot = support.x_dot               # constant longitudinal velocity @ 20m/s
 time_length = support.time_lenght   # duration of the manoeuver
@@ -24,16 +24,16 @@ time_length = support.time_lenght   # duration of the manoeuver
 t = np.arange(0, time_length+Ts, Ts)    # 时间向量
 r = support.r
 f = support.f
-PHI, X, Y = support.trajectory_generator(t, r, f)
+phi_ref, X_ref, Y_ref = support.trajectory_generator(t, r, f)
 sin_length = len(t)                 # Number of control loop iterations
 
 # Build up the reference signal vector:
 # refSignals = [PHI0, Y0, PHIi, Yi, ..., etc.]
-refSignals = np.zeros(len(X)*Num_state)
+refSignals = np.zeros(len(X_ref)*outputs)
 k = 0
-for i in range(0, len(refSignals), Num_state):
-    refSignals[i] = PHI[k]
-    refSignals[i+1] = Y[k]
+for i in range(0, len(refSignals), outputs):
+    refSignals[i] = phi_ref[k]
+    refSignals[i+1] = Y_ref[k]
     k += 1
 
 # Load the initial states
@@ -68,7 +68,7 @@ for i in range(0, hz):
 
 
 Ad, Bd, Cd, Dd = support.state_space()
-H_bb, F_bbt, C_bb, A_hh = support.mpc_simplification2(Ad, Bd, Cd, Dd, hz)
+H_bb, F_bbt, C_bb, A_hh = support.mpc_simplification(Ad, Bd, Cd, Dd, hz)
 
 
 
@@ -80,9 +80,9 @@ for i in range(0, sin_length-1):
 
     # 从参考信号中取出一小段（长度为hz）信号
     # 儅hz=1時，則每次取一組參考值，剛好與i同時取完
-    k = k + Num_state # Num_state=2，不取φ_ref_0, y_ref_0
-    if k + Num_state*hz <= len(refSignals): # refSinals=[φ_ref_0, y_ref_0, φ_ref_0.02, y_ref_0.02, ...]
-        r = refSignals[k: k + Num_state*hz]
+    k = k + outputs # Num_state=2，不取φ_ref_0, y_ref_0
+    if (k + outputs*hz) <= len(refSignals): # refSinals=[φ_ref_0, y_ref_0, φ_ref_0.02, y_ref_0.02, ...]
+        r = refSignals[k: k + outputs*hz]
     else:       # 最後如果不夠取，就取到末尾即可，這樣hz會少一項，的重新計算bb矩陣
         r = refSignals[k: len(refSignals)]
         hz -= 1
@@ -92,26 +92,43 @@ for i in range(0, sin_length-1):
 
 
     # 通過梯度公式求Δδ
-    X_r = np.matmul(np.concatenate((np.transpose(X_tilde_k)[0][0: len(X_tilde_k)], r), axis=0), F_bbt) # len(矩陣)=行數
-    du = -np.matmul(np.linalg.inv(H_bb), np.transpose([X_r]))
+    X_r = np.concatenate((np.transpose(X_tilde_k)[0][:], r), axis=0) # len(矩陣)=行數
+    ft = np.matmul([X_r], F_bbt)
+    du = -np.matmul(np.linalg.inv(H_bb), np.transpose(ft))
+
 
     # 帶入預測公式計算預測值
     x_aug_opt = np.matmul(C_bb, du) + np.matmul(A_hh, X_tilde_k)
-
     # 提取預測值中的φ和y
-    phi_opt = np.matmul(C_phi_opt[0:hz, 0:(len(states)+np.size(U[0])) *hz], x_aug_opt)
-    Y_opt = np.matmul(C_Y_opt[0:hz, 0:(len(states)+np.size(U[0])) *hz], x_aug_opt)
+    phi_opt = np.matmul(C_phi_opt[0:hz, 0:(len(states)+np.size(U0)) *hz], x_aug_opt)
+    Y_opt = np.matmul(C_Y_opt[0:hz, 0:(len(states)+np.size(U0)) *hz], x_aug_opt)
 
 
     # 儲存所有預測值
-    psi_opt = np.transpose((phi_opt))[0]
-    psi_opt_total[i+1][0:hz] = np.transpose(phi_opt) #######???????????????????????????????????????????????????
+    phi_opt = np.transpose((phi_opt))[0]
+    psi_opt_total[i+1][0:hz] = phi_opt
     Y_opt = np.transpose((Y_opt))[0]
     Y_opt_total[i+1][0:hz] = Y_opt
+
 
     # 更新輸入
     U0 = U0 + du[0][0]
 
+
+    # 控制量約束
+    if U0 < -np.pi/6:
+        U0 = -np.pi/6
+    elif U0 > np.pi/6:
+        U0 = np.pi/6
+    else:
+        U0 = U0
+
+    U[i+1] = U0
+
+
+    # Compute new states in the open loop system (interval: Ts/30)
+    states = support.open_loop_new_states(states, U0)
+    statesTotal[i+1][0:len(states)] = states
 
 
     
@@ -132,29 +149,21 @@ for i in range(0, sin_length-1):
 ################################ ANIMATION LOOP ###############################
 
 
-frames = int(time_length/Ts)
-Lf = support.lf
-Lr = support.lr
-
-
-def update_plot(frame):
-    pass
-
-
 fig = plt.figure(figsize=(16, 9), dpi=120, facecolor=(0.8, 0.8, 0.8))
 gs = gridspec.GridSpec(3, 3)
 
 
+# 軌跡
 lane_width = support.lane_width
 ax0 = fig.add_subplot(gs[0, :], facecolor=(0.9, 0.9, 0.9))
-ref_trajectory, = ax0.plot(X, Y, 'b', lw=2)
-lane_1, = ax0.plot([X[0], X[-1]], [lane_width/2, lane_width/2], 'k', lw=0.2)
-lane_2, = ax0.plot([X[0], X[-1]], [-lane_width/2, -lane_width/2], 'k', lw=0.2)
-lane_3, = ax0.plot([X[0], X[-1]], [lane_width/2 + lane_width, lane_width/2 + lane_width], 'k', lw=0.2)
-lane_4, = ax0.plot([X[0], X[-1]], [-lane_width/2 - lane_width, -lane_width/2 - lane_width], 'k', lw=0.2)
-lane_5, = ax0.plot([X[0], X[-1]], [lane_width/2 + lane_width*2, lane_width/2 + lane_width*2], 'k', lw=0.2)
-lane_6, = ax0.plot([X[0], X[-1]], [-lane_width/2 - lane_width*2, -lane_width/2 - lane_width*2], 'k', lw=0.2)
-plt.xlim(X[0], X[-1])
+ref_trajectory = ax0.plot(X_ref, Y_ref, 'b', lw=2)
+lane_1, = ax0.plot([X_ref[0], X_ref[-1]], [lane_width/2, lane_width/2], 'k', lw=0.2)
+lane_2, = ax0.plot([X_ref[0], X_ref[-1]], [-lane_width/2, -lane_width/2], 'k', lw=0.2)
+lane_3, = ax0.plot([X_ref[0], X_ref[-1]], [lane_width/2 + lane_width, lane_width/2 + lane_width], 'k', lw=0.2)
+lane_4, = ax0.plot([X_ref[0], X_ref[-1]], [-lane_width/2 - lane_width, -lane_width/2 - lane_width], 'k', lw=0.2)
+lane_5, = ax0.plot([X_ref[0], X_ref[-1]], [lane_width/2 + lane_width*2, lane_width/2 + lane_width*2], 'k', lw=3)
+lane_6, = ax0.plot([X_ref[0], X_ref[-1]], [-lane_width/2 - lane_width*2, -lane_width/2 - lane_width*2], 'k', lw=3)
+plt.xlim(X_ref[0], X_ref[-1])
 plt.ylim()
 # plt.ylim(-X_ref[frame_amount]/(n*(fig_x/fig_y)*2),X_ref[frame_amount]/(n*(fig_x/fig_y)*2))
 plt.ylabel('Y-distance [m]', size=12)
@@ -165,9 +174,43 @@ car_determined, = ax0.plot([], [], '-r', lw=1)
 
 
 
+# 汽車局部運動圖
 ax1 = fig.add_subplot(gs[1, :], facecolor=(0.9, 0.9, 0.9))
 
+neutral_line, = ax1.plot([-50,50], [0,0], 'k', lw=1)
 
+# car_1_body, = ax1.plot([], [], 'k', lw=3)
+# car_1_axle_f, = ax1.plot([], [], 'k', lw=3)
+# car_1_axle_r, = ax1.plot([], [], 'k', lw=3)
+# car_1_wheel_fl, = ax1.plot([], [], 'r', lw=10)
+# car_1_wheel_fr, = ax1.plot([], [], 'r', lw=10)
+# car_1_wheel_rl, = ax1.plot([], [], 'r', lw=10)
+# car_1_wheel_rr, = ax1.plot([], [], 'r', lw=10)
+
+# # car_1_back_wheel, = ax1.plot([], [], 'r', lw=3)
+# # car_1_front_wheel, = ax1.plot([], [], 'r', lw=3)
+# car_1_extension_yaw, = ax1.plot([], [], '--k', lw=1)
+# car_1_extension_steer, = ax1.plot([], [], '--r', lw=1)
+
+# xmin = -5
+# xmax = 30
+# plt.xlim(xmin, xmax)
+
+
+# plt.ylim(-(xmax-xmin)/(3*(16/9)*2), (xmax-xmin)/(3*(16/9)*2))
+plt.ylabel('Y-distance [m]', fontsize=15)
+bbox_props_angle = dict(boxstyle='square', fc=(0.9,0.9,0.9), ec='k', lw=1)
+bbox_props_steer_angle = dict(boxstyle='square', fc=(0.9,0.9,0.9), ec='r', lw=1)
+yaw_angle_text = ax1.text(22, 1.5, '', size='20', color='k', bbox=bbox_props_angle)
+steer_angle_text = ax1.text(22, -2, '', size='20', color='r', bbox=bbox_props_steer_angle)
+
+
+
+
+
+
+
+# 方向盤轉角曲綫（即δ）
 ax2 = fig.add_subplot(gs[2, 0], facecolor=(0.9, 0.9, 0.9))
 steering_angle, = plt.plot([], [], '-r', lw=1, label='steering angle [deg]')
 plt.xlabel('Time [s]', size=12)
@@ -176,26 +219,160 @@ plt.grid(True)
 plt.legend(loc='upper right', fontsize='small')
 
 
+# 航向角曲綫（即yaw或φ）
 ax3 = fig.add_subplot(gs[2, 1], facecolor=(0.9, 0.9, 0.9))
-yaw_ref, = plt.plot([], [], '-b', lw=1, label='steering angle [deg]')
-yaw, = plt.plot([], [], '-r', lw=1, label='yaw angle [deg]')
-phi_predicted, = plt.plot([], [], '-m', lw=3, label='φ predicted [deg]')
+yaw_ref, = plt.plot(t, phi_ref, '-b', lw=1, label='yaw reference [deg]')
+yaw_ang, = plt.plot([], [], '-r', lw=1, label='yaw angle [deg]')
+yaw_pre, = plt.plot([], [], '-m', lw=3, label='yaw predicted [deg]')
 plt.xlabel('Time [s]', size=12)
 plt.xlim(t[0], t[-1])
 plt.grid(True)
 plt.legend(loc='upper right', fontsize='small')
 
 
+# Y位置曲綫
 ax4 = fig.add_subplot(gs[2, 2], facecolor=(0.9, 0.9, 0.9))
-Y_ref, = plt.plot([], [], '-b', lw=1, label='steering angle [deg]')
-y_pos, = plt.plot([], [], '-r', lw=1, label='yaw angle [deg]')
-phi_predicted, = plt.plot([], [], '-m', lw=3, label='φ predicted [deg]')
+Y_ref, = plt.plot(t, Y_ref, '-b', lw=1, label='Y - reference [m]')
+Y_pos, = plt.plot([], [], '-r', lw=1, label='Y - position [m]')
+Y_pre, = plt.plot([], [], '-m', lw=3, label='Y - predicted [m]]')
 plt.xlabel('Time [s]', size=12)
 plt.xlim(t[0], t[-1])
 plt.grid(True)
 plt.legend(loc='upper right', fontsize='small')
 
 
+wheel_base_half = 1.5
+wheel_radius = 0.4
+def update_plot(frame):
+    hz = support.hz
+    Lf = support.lf
+    Lr = support.lr
 
-plt.plot(X, Y)
+    # wheel_base_half = 1.5
+    # wheel_radius = 0.4
+
+    
+    x = X_ref[frame]
+    y = statesTotal[frame, 3]
+    phi = statesTotal[frame,1]
+    delta = U[frame]
+
+
+    car_1.set_data([x - Lr*np.cos(phi), x + Lf*np.cos(phi)],
+                   [y - Lr*np.sin(phi), y + Lf*np.sin(phi)])
+    
+
+
+
+
+
+
+
+    car_1_body, = ax1.plot([], [], 'k', lw=3)
+    car_1_axle_f, = ax1.plot([], [], 'k', lw=3)
+    car_1_axle_r, = ax1.plot([], [], 'k', lw=3)
+    car_1_wheel_fl, = ax1.plot([], [], 'r', lw=10)
+    car_1_wheel_fr, = ax1.plot([], [], 'r', lw=10)
+    car_1_wheel_rl, = ax1.plot([], [], 'r', lw=10)
+    car_1_wheel_rr, = ax1.plot([], [], 'r', lw=10)
+
+    # car_1_back_wheel, = ax1.plot([], [], 'r', lw=3)
+    # car_1_front_wheel, = ax1.plot([], [], 'r', lw=3)
+    car_1_extension_yaw, = ax1.plot([], [], '--k', lw=1)
+    car_1_extension_steer, = ax1.plot([], [], '--r', lw=1)
+
+    xmin = x-10
+    xmax = x+30
+    plt.xlim(xmin, xmax)
+    plt.ylim(y-5, y+5)
+
+
+
+
+
+
+    
+    car_1_body.set_data([x - Lr*np.cos(phi), x + Lf*np.cos(phi)],
+                        [y - Lr*np.sin(phi), y + Lf*np.sin(phi)])
+
+    
+    # car_1_front_wheel.set_data([Lf*np.cos(phi) - 0.02*np.cos(phi + delta),
+    #                             Lf*np.cos(phi) + 0.02*np.cos(phi + delta)],
+    #                            [Lf*np.sin(phi) - 0.1*np.sin(phi + delta),
+    #                             Lf*np.sin(phi) + 0.1*np.sin(phi + delta)])
+
+    # car_1_back_wheel.set_data([-(Lr+0.05)*np.cos(phi),
+    #                            -(Lr-0.05)*np.cos(phi)],
+    #                           [(Lr+0.5)*np.sin(phi),
+    #                            (Lr-0.5)*np.sin(phi)])
+
+    
+
+    car_1_axle_f.set_data([x + Lf*np.cos(phi) - wheel_base_half*np.sin(phi),
+                           x + Lf*np.cos(phi) + wheel_base_half*np.sin(phi)],
+                          [y + Lf*np.sin(phi) - wheel_base_half*np.cos(phi),
+                           y + Lf*np.sin(phi) + wheel_base_half*np.cos(phi)])
+    
+    car_1_wheel_fl.set_data([x + Lf*np.cos(phi) - wheel_base_half*np.sin(phi) - wheel_radius*np.cos(phi+delta),
+                             x + Lf*np.cos(phi) - wheel_base_half*np.sin(phi) + wheel_radius*np.cos(phi+delta)],
+                            [y + Lf*np.sin(phi) + wheel_base_half*np.cos(phi) - wheel_radius*np.sin(phi+delta),
+                             y + Lf*np.sin(phi) + wheel_base_half*np.cos(phi) + wheel_radius*np.sin(phi+delta)])
+    
+    car_1_wheel_fr.set_data([x + Lf*np.cos(phi) + wheel_base_half*np.sin(phi) - wheel_radius*np.cos(phi+delta),
+                             x + Lf*np.cos(phi) + wheel_base_half*np.sin(phi) + wheel_radius*np.cos(phi+delta)],
+                            [y + Lf*np.sin(phi) - wheel_base_half*np.cos(phi) - wheel_radius*np.sin(phi+delta),
+                             y + Lf*np.sin(phi) - wheel_base_half*np.cos(phi) + wheel_radius*np.sin(phi+delta)])
+    
+    car_1_axle_r.set_data([x - (Lr*np.cos(phi) - wheel_base_half*np.sin(phi)),
+                           x - (Lr*np.cos(phi) + wheel_base_half*np.sin(phi))],
+                          [y - (Lr*np.sin(phi) - wheel_base_half*np.cos(phi)),
+                           y - (Lr*np.sin(phi) + wheel_base_half*np.cos(phi))])
+    
+    car_1_wheel_rl.set_data([x - (Lr*np.cos(phi) - wheel_base_half*np.sin(phi) - wheel_radius*np.cos(phi)),
+                             x - (Lr*np.cos(phi) - wheel_base_half*np.sin(phi) + wheel_radius*np.cos(phi))],
+                            [y - (Lr*np.sin(phi) - wheel_base_half*np.cos(phi) - wheel_radius*np.sin(phi)),
+                             y - (Lr*np.sin(phi) - wheel_base_half*np.cos(phi) + wheel_radius*np.sin(phi))])
+    
+    car_1_wheel_rr.set_data([x - (Lr*np.cos(phi) + wheel_base_half*np.sin(phi) - wheel_radius*np.cos(phi)),
+                             x - (Lr*np.cos(phi) + wheel_base_half*np.sin(phi) + wheel_radius*np.cos(phi))],
+                            [y - (Lr*np.sin(phi) + wheel_base_half*np.cos(phi) - wheel_radius*np.sin(phi)),
+                             y - (Lr*np.sin(phi) + wheel_base_half*np.cos(phi) + wheel_radius*np.sin(phi))])
+
+
+    
+
+    car_1_extension_yaw.set_data([0, (Lf+40)*np.cos(phi)],
+                                  [0, (Lf+40)*np.sin(phi)])
+    
+    car_1_extension_steer.set_data([Lf*np.cos(phi),
+                                          Lf*np.cos(phi) + (0.5+40)*np.cos(phi + delta)],
+                                         [Lf*np.sin(phi),
+                                          Lf*np.sin(phi) + (0.5+40)*np.sin(phi + delta)])
+
+
+    yaw_angle_text.set_text('yaw: %s rad' %str(round(phi, 2)))
+    steer_angle_text.set_text('steer: %s rad' %str(round(delta, 2)))
+
+
+    ret = [car_1,
+           car_1_body,
+        #    car_1_front_wheel,
+        #    car_1_back_wheel,
+           car_1_axle_f,
+           car_1_wheel_fl,
+           car_1_wheel_fr,
+           car_1_extension_yaw,
+           car_1_extension_steer,
+           yaw_angle_text,
+           steer_angle_text,
+    ]
+    return ret
+
+
+frames = int(time_length/Ts)
+ani = animation.FuncAnimation(fig, update_plot,
+                              frames=frames,          # frames這裏不支持表達式計算
+                              interval=20,
+                              repeat=False,
+                              blit=True)
 plt.show()

@@ -118,7 +118,7 @@ for i in range(0,sim_length-1):
         # in the end of the simulation, the horizon period (hz) starts decreasing.
         # Therefore, the matrices need to be constantly updated in the end of the simulation.
         Hdb,Fdbt,Cdb,Adc=support.mpc_simplification(Ad,Bd,Cd,Dd,hz)
-    
+
     ft=np.matmul(np.concatenate((np.transpose(x_aug_t)[0][0:len(x_aug_t)],r),axis=0),Fdbt)
     du=-np.matmul(np.linalg.inv(Hdb),np.transpose([ft]))
     x_aug_opt=np.matmul(Cdb,du)+np.matmul(Adc,x_aug_t)
@@ -126,6 +126,7 @@ for i in range(0,sim_length-1):
     Y_opt=np.matmul(C_Y_opt[0:hz,0:(len(states)+np.size(U1))*hz],x_aug_opt)
     # if hz<4:
     #     print(x_aug_opt)
+    # print(psi_opt_total[i+1][0:hz])
     psi_opt=np.transpose((psi_opt))[0]
     psi_opt_total[i+1][0:hz]=psi_opt
     Y_opt=np.transpose((Y_opt))[0]
@@ -137,7 +138,7 @@ for i in range(0,sim_length-1):
     U1=U1+du[0][0]
 
     ######################### PID #############################################
-    PID_switch=constants[17]
+    # PID_switch=constants[17]
 
     # if PID_switch==1:
     #     if i==0:
@@ -224,21 +225,22 @@ def update_plot(num):
 
     if num+hz>len(t):
         hz=len(t)-num
-    if PID_switch!=1 and num!=0:
-        Y_predicted.set_data(t[num:num+hz],Y_opt_total[num][0:hz])
-        psi_predicted.set_data(t[num:num+hz],psi_opt_total[num][0:hz])
-        car_predicted.set_data(X_ref[num:num+hz],Y_opt_total[num][0:hz])
-    car_determined.set_data(X_ref[0:num],statesTotal[0:num,3])
+    # if PID_switch!=1 and num!=0:
+    #     Y_predicted.set_data(t[num:num+hz],Y_opt_total[num][0:hz])
+    #     psi_predicted.set_data(t[num:num+hz],psi_opt_total[num][0:hz])
+    #     car_predicted.set_data(X_ref[num:num+hz],Y_opt_total[num][0:hz])
+    # car_determined.set_data(X_ref[0:num],statesTotal[0:num,3])
 
-    if PID_switch!=1:
-        return car_1, car_1_body, car_1_body_extension,\
-        car_1_back_wheel, car_1_front_wheel, car_1_front_wheel_extension,\
-        yaw_angle_text, steer_angle, steering_wheel,\
-        yaw_angle, Y_position, car_determined, Y_predicted, psi_predicted, car_predicted
-    else:
-        return car_1, car_1_body, car_1_body_extension,\
-        car_1_back_wheel, car_1_front_wheel, car_1_front_wheel_extension,\
-        yaw_angle_text, steer_angle, steering_wheel,yaw_angle, Y_position, car_determined
+    # if PID_switch!=1:
+    #     return car_1, car_1_body, car_1_body_extension,\
+    #     car_1_back_wheel, car_1_front_wheel, car_1_front_wheel_extension,\
+    #     yaw_angle_text, steer_angle, steering_wheel,\
+    #     yaw_angle, Y_position, car_determined, Y_predicted, psi_predicted, car_predicted
+    # else:
+    #     return car_1, car_1_body, car_1_body_extension,\
+    #     car_1_back_wheel, car_1_front_wheel, car_1_front_wheel_extension,\
+    #     yaw_angle_text, steer_angle, steering_wheel,yaw_angle, Y_position, car_determined
+    return car_1, car_1_body, car_1_body_extension, car_1_back_wheel, car_1_front_wheel, car_1_front_wheel_extension, yaw_angle_text, steer_angle, steering_wheel,yaw_angle, Y_position
 
 # Set up your figure properties
 fig_x=16
@@ -283,8 +285,8 @@ plt.ylabel('Y-distance [m]',fontsize=15)
 
 # Create an object for the motorcycle (zoomed)
 ax1=fig.add_subplot(gs[1,:],facecolor=(0.9,0.9,0.9))
-bbox_props_angle=dict(boxstyle='square',fc=(0.9,0.9,0.9),ec='k',lw='1')
-bbox_props_steer_angle=dict(boxstyle='square',fc=(0.9,0.9,0.9),ec='r',lw='1')
+bbox_props_angle=dict(boxstyle='square',fc=(0.9,0.9,0.9),ec='k',lw=1)
+bbox_props_steer_angle=dict(boxstyle='square',fc=(0.9,0.9,0.9),ec='r',lw=1)
 
 neutral_line=ax1.plot([-50,50],[0,0],'k',linewidth=1)
 car_1_body,=ax1.plot([],[],'k',linewidth=3)
@@ -314,8 +316,8 @@ plt.legend(loc='upper right',fontsize='small')
 ax3=fig.add_subplot(gs[2,1],facecolor=(0.9,0.9,0.9))
 yaw_angle_reference=ax3.plot(t,psi_ref,'-b',linewidth=1,label='yaw reference [rad]')
 yaw_angle,=ax3.plot([],[],'-r',linewidth=1,label='yaw angle [rad]')
-if PID_switch!=1:
-    psi_predicted,=ax3.plot([],[],'-m',linewidth=3,label='psi - predicted [rad]')
+# if PID_switch!=1:
+#     psi_predicted,=ax3.plot([],[],'-m',linewidth=3,label='psi - predicted [rad]')
 plt.xlim(0,t[-1])
 plt.ylim(np.min(statesTotal[:,1])-0.1,np.max(statesTotal[:,1])+0.1)
 plt.xlabel('time [s]',fontsize=15)
@@ -326,8 +328,8 @@ plt.legend(loc='upper right',fontsize='small')
 ax4=fig.add_subplot(gs[2,2],facecolor=(0.9,0.9,0.9))
 Y_position_reference=ax4.plot(t,Y_ref,'-b',linewidth=1,label='Y - reference [m]')
 Y_position,=ax4.plot([],[],'-r',linewidth=1,label='Y - position [m]')
-if PID_switch!=1:
-    Y_predicted,=ax4.plot([],[],'-m',linewidth=3,label='Y - predicted [m]')
+# if PID_switch!=1:
+#     Y_predicted,=ax4.plot([],[],'-m',linewidth=3,label='Y - predicted [m]')
 plt.xlim(0,t[-1])
 plt.ylim(np.min(statesTotal[:,3])-2,np.max(statesTotal[:,3])+2)
 plt.xlabel('time [s]',fontsize=15)

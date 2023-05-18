@@ -238,7 +238,6 @@ plt.ylim(lower-margin_low, upper+margin_upp)
 
 
 # 动画更新函数
-frames = len(t)*trials
 def update_plot(frame):
     train.set_data([pos_x_train[int(frame/len_t)][frame%len_t]-half_w_train,
                    pos_x_train[int(frame/len_t)][frame%len_t]+half_w_train],
@@ -270,6 +269,7 @@ def update_plot(frame):
 
 
 # 动态图
+frames = len(t)*trials
 ani = animation.FuncAnimation(fig,
                               update_plot,
                               frames=frames,

@@ -25,5 +25,6 @@ plt.plot(xx, yy)
 plt.yticks([-np.pi/2, 0, np.pi/2], [r'$-\frac{\pi}{2}$', 0, 'np.pi/2'])
 # plt.show()
 
-a = np.array([[1,2]])
+a = 4
+a -= 1
 print(a)
