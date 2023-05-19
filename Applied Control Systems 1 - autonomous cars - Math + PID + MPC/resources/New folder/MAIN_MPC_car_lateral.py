@@ -42,6 +42,8 @@ t=np.arange(0,time_length+Ts,Ts) # time from 0 to 10 seconds, sample time (Ts=0.
 r=constants[13]
 f=constants[14]
 psi_ref,X_ref,Y_ref=support.trajectory_generator(t,r,f)
+
+print(psi_ref)
 sim_length=len(t) # Number of control loop iterations
 refSignals=np.zeros(len(X_ref)*outputs)
 

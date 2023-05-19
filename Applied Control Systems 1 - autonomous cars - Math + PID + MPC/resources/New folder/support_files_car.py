@@ -68,7 +68,7 @@ class SupportFilesCar:
 
         ### PID END ###
 
-        trajectory=3 # You should only choose 1,2,3
+        trajectory=2 # You should only choose 1,2,3
 
         self.constants=[m, Iz, Caf, Car, lf, lr, Ts, Q, S, R, outputs, hz, x_dot, r, f, time_length,lane_width,PID_switch,Kp_yaw,Kd_yaw,Ki_yaw,Kp_Y,Kd_Y,Ki_Y,trajectory]
 
