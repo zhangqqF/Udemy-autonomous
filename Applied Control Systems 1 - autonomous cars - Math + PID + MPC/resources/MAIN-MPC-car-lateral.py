@@ -283,8 +283,8 @@ plt.ylabel('Y-distance [m]',fontsize=15)
 
 # Create an object for the motorcycle (zoomed)
 ax1=fig.add_subplot(gs[1,:],facecolor=(0.9,0.9,0.9))
-bbox_props_angle=dict(boxstyle='square',fc=(0.9,0.9,0.9),ec='k',lw='1')
-bbox_props_steer_angle=dict(boxstyle='square',fc=(0.9,0.9,0.9),ec='r',lw='1')
+bbox_props_angle=dict(boxstyle='square',fc=(0.9,0.9,0.9),ec='k',lw=1)
+bbox_props_steer_angle=dict(boxstyle='square',fc=(0.9,0.9,0.9),ec='r',lw=1)
 
 neutral_line=ax1.plot([-50,50],[0,0],'k',linewidth=1)
 car_1_body,=ax1.plot([],[],'k',linewidth=3)

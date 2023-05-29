@@ -87,7 +87,6 @@ for i in range(0, sin_length-1):
     else:       # 最後如果不夠取，就取到末尾即可，這樣hz會少一項，的重新計算bb矩陣
         r = refSignals[k: len(refSignals)]
         hz -= 1
-        print(hz)
 
     if hz < support.hz:
         H_bb, F_bbt, C_bb, A_hh = support.mpc_simplification(Ad, Bd, Cd, Dd, hz)
@@ -100,17 +99,17 @@ for i in range(0, sin_length-1):
 
 
     # 帶入預測公式計算預測值
-    x_aug_opt = np.matmul(C_bb, du) + np.matmul(A_hh, X_tilde_k)
-    # 提取預測值中的φ和y
-    phi_opt = np.matmul(C_phi_opt[0:hz, 0:(len(states)+np.size(U0)) *hz], x_aug_opt)
-    Y_opt = np.matmul(C_Y_opt[0:hz, 0:(len(states)+np.size(U0)) *hz], x_aug_opt)
+    # x_aug_opt = np.matmul(C_bb, du) + np.matmul(A_hh, X_tilde_k)
+    # # 提取預測值中的φ和y
+    # phi_opt = np.matmul(C_phi_opt[0:hz, 0:(len(states)+np.size(U0)) *hz], x_aug_opt)
+    # Y_opt = np.matmul(C_Y_opt[0:hz, 0:(len(states)+np.size(U0)) *hz], x_aug_opt)
 
 
-    # 儲存所有預測值
-    phi_opt = np.transpose((phi_opt))[0]
-    psi_opt_total[i+1][0:hz] = phi_opt
-    Y_opt = np.transpose((Y_opt))[0]
-    Y_opt_total[i+1][0:hz] = Y_opt
+    # # 儲存所有預測值
+    # phi_opt = np.transpose((phi_opt))[0]
+    # psi_opt_total[i+1][0:hz] = phi_opt
+    # Y_opt = np.transpose((Y_opt))[0]
+    # Y_opt_total[i+1][0:hz] = Y_opt
 
 
     # 更新輸入
@@ -123,29 +122,13 @@ for i in range(0, sin_length-1):
     elif U0 > np.pi/6:
         U0 = np.pi/6
     else:
-        U0 = U0
+        pass
 
     U[i+1] = U0
 
 
-    # Compute new states in the open loop system (interval: Ts/30)
     states = support.open_loop_new_states(states, U0)
-    statesTotal[i+1][0:len(states)] = states
-
-
-    
-    # ---------------------- PID 控制 ---------------------- #
-    PID_switch = support.PID_switch
-    if PID_switch == 1:
-        if i == 0:
-            E_phi = 0
-            E_y = 0
-        else:
-            pass
-    # ---------------------- PID End ---------------------- #
-
-
-
+    statesTotal[i+1][:] = states
 
 
 ################################ ANIMATION LOOP ###############################
@@ -181,10 +164,10 @@ neutral_line, = ax1.plot([-50,50], [0,0], 'k', lw=1)
 car_1_body, = ax1.plot([], [], 'k', lw=3)
 car_1_axle_f, = ax1.plot([], [], 'k', lw=3)
 car_1_axle_r, = ax1.plot([], [], 'k', lw=3)
-car_1_wheel_fl, = ax1.plot([], [], 'r', lw=10)
-car_1_wheel_fr, = ax1.plot([], [], 'r', lw=10)
-car_1_wheel_rl, = ax1.plot([], [], 'r', lw=10)
-car_1_wheel_rr, = ax1.plot([], [], 'r', lw=10)
+car_1_wheel_fl, = ax1.plot([], [], 'r', lw=8)
+car_1_wheel_fr, = ax1.plot([], [], 'r', lw=8)
+car_1_wheel_rl, = ax1.plot([], [], 'k', lw=8)
+car_1_wheel_rr, = ax1.plot([], [], 'k', lw=8)
 car_1_extension_yaw, = ax1.plot([], [], '--k', lw=1)
 car_1_extension_steer, = ax1.plot([], [], '--r', lw=1)
 xmin = -5
@@ -241,10 +224,11 @@ def update_plot(frame):
     phi = statesTotal[frame,1]
     delta = U[frame]
 
-    # 轨迹跟踪图
+    '''
+    轨迹跟踪图
+    '''
     car_1.set_data([x - Lr*np.cos(phi), x + Lf*np.cos(phi)],
                    [y - Lr*np.sin(phi), y + Lf*np.sin(phi)])
-    
 
     '''
     汽车转向细节图
@@ -255,8 +239,8 @@ def update_plot(frame):
     # 前轴
     car_1_axle_f.set_data([Lf*np.cos(phi) - wheel_base_half*np.sin(phi),
                            Lf*np.cos(phi) + wheel_base_half*np.sin(phi)],
-                          [Lf*np.sin(phi) - wheel_base_half*np.cos(phi),
-                           Lf*np.sin(phi) + wheel_base_half*np.cos(phi)])
+                          [Lf*np.sin(phi) + wheel_base_half*np.cos(phi),
+                           Lf*np.sin(phi) - wheel_base_half*np.cos(phi)])
     # 左前轮
     car_1_wheel_fl.set_data([Lf*np.cos(phi) - wheel_base_half*np.sin(phi) - wheel_radius*np.cos(phi+delta),
                              Lf*np.cos(phi) - wheel_base_half*np.sin(phi) + wheel_radius*np.cos(phi+delta)],
@@ -270,21 +254,21 @@ def update_plot(frame):
     # 后轴
     car_1_axle_r.set_data([-(Lr*np.cos(phi) - wheel_base_half*np.sin(phi)),
                            -(Lr*np.cos(phi) + wheel_base_half*np.sin(phi))],
-                          [-(Lr*np.sin(phi) - wheel_base_half*np.cos(phi)),
-                           -(Lr*np.sin(phi) + wheel_base_half*np.cos(phi))])
+                          [-(Lr*np.sin(phi) + wheel_base_half*np.cos(phi)),
+                           -(Lr*np.sin(phi) - wheel_base_half*np.cos(phi))])
     # 左后轮
     car_1_wheel_rl.set_data([-(Lr*np.cos(phi) - wheel_base_half*np.sin(phi) - wheel_radius*np.cos(phi)),
                              -(Lr*np.cos(phi) - wheel_base_half*np.sin(phi) + wheel_radius*np.cos(phi))],
-                            [-(Lr*np.sin(phi) - wheel_base_half*np.cos(phi) - wheel_radius*np.sin(phi)),
-                             -(Lr*np.sin(phi) - wheel_base_half*np.cos(phi) + wheel_radius*np.sin(phi))])
+                            [-(Lr*np.sin(phi) + wheel_base_half*np.cos(phi) - wheel_radius*np.sin(phi)),
+                             -(Lr*np.sin(phi) + wheel_base_half*np.cos(phi) + wheel_radius*np.sin(phi))])
     # 右后轮
     car_1_wheel_rr.set_data([-(Lr*np.cos(phi) + wheel_base_half*np.sin(phi) - wheel_radius*np.cos(phi)),
                              -(Lr*np.cos(phi) + wheel_base_half*np.sin(phi) + wheel_radius*np.cos(phi))],
-                            [-(Lr*np.sin(phi) + wheel_base_half*np.cos(phi) - wheel_radius*np.sin(phi)),
-                             -(Lr*np.sin(phi) + wheel_base_half*np.cos(phi) + wheel_radius*np.sin(phi))])
+                            [-(Lr*np.sin(phi) - wheel_base_half*np.cos(phi) - wheel_radius*np.sin(phi)),
+                             -(Lr*np.sin(phi) - wheel_base_half*np.cos(phi) + wheel_radius*np.sin(phi))])
     # steering角度延长线
     car_1_extension_yaw.set_data([0, (Lf+40)*np.cos(phi)],
-                                  [0, (Lf+40)*np.sin(phi)])
+                                 [0, (Lf+40)*np.sin(phi)])
     # 汽车航向角延长线
     car_1_extension_steer.set_data([Lf*np.cos(phi), Lf*np.cos(phi) + (0.5+40)*np.cos(phi + delta)],
                                    [Lf*np.sin(phi), Lf*np.sin(phi) + (0.5+40)*np.sin(phi + delta)])
@@ -298,6 +282,9 @@ def update_plot(frame):
            car_1_axle_f,
            car_1_wheel_fl,
            car_1_wheel_fr,
+           car_1_axle_r,
+           car_1_wheel_rl,
+           car_1_wheel_rr,
            car_1_extension_yaw,
            car_1_extension_steer,
            yaw_angle_text,
