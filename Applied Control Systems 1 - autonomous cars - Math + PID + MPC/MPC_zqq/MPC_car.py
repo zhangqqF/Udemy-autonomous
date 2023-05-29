@@ -23,17 +23,17 @@ trajectory = 3                      # MPC_Controller定义了三种轨迹，选�
 
 X_ref, Y_ref, PHI_ref = mpc.trajectory_generator(t, trajectory)
 ref = mpc.combine_ref([Y_ref, PHI_ref])
-print(len(ref))
 
 
 '''
 matrix
 '''
+hz = 20         # horizon period, also known as prediction horizon
 a, b, c, d, e, f = mpc.dynamic_func_abcdef()
 A, B, C, D = mpc.state_ABCD(a, b, c, d, e, f)
 Ad, Bd, Cd, Dd = mpc.discrete(A, B, C, D)
 A_tilde, B_tilde, C_tilde, D_tilde = mpc.augmented_tilde(Ad, Bd, Cd, Dd)
-Q_bb, T_bb, R_bb, C_bb, A_hh = mpc.bbar(A_tilde, B_tilde, C_tilde, D_tilde)
+Q_bb, T_bb, R_bb, C_bb, A_hh = mpc.bbar(A_tilde, B_tilde, C_tilde, D_tilde, hz)
 H_bb, F_bbt = mpc.gradient(Q_bb, T_bb, R_bb, C_bb, A_hh)
 
 
@@ -45,7 +45,7 @@ init_dy = 0
 init_dphi = 0
 init_phi = 0
 init_y = Y_ref[0] + 10   # 初始y在参考y的10上面位置
-init_states = np.array([init_dy, init_dphi, init_phi, init_y])
+init_states = np.array([init_dy, init_phi, init_dphi, init_y])
 states = np.zeros((len(t), len(init_states)))
 states[0] = init_states
 
@@ -57,26 +57,28 @@ U[0] = init_U
 # 预测
 num_ref = len(ref)/len(t)
 sim_steps = len(t)
-hz = mpc.hz
-for i in range(sim_steps):
+for i in range(sim_steps-1):
+
     # 状态量和控制量的增广矩阵
     X_aug_T = np.concatenate((init_states, [init_U]), axis=0)
     X_tilde = np.transpose(np.concatenate((init_states, [init_U]), axis=0))
     
     # 从参考矩阵中提取r矩阵
-    for i in range(0, sim_steps):
-        if (i+hz)*num_ref > len(ref):   # 如果不够取，那就取到最后的值，而此时hz将变小，须重新计算系数矩阵
-            r = ref[i*num_ref:]
-            hz_small = hz - ((i+hz)*num_ref-len(ref))/num_ref
-            
-            [Q_bb,T_bb,R_bb,C_bb,A_hh] = mpc.bbar(A_tilde,B_tilde,C_tilde,D_tilde, hz_small)
-            [H_bb, F_bbt] = mpc.gradient(C_bb, Q_bb, R_bb, T_bb)
-            
-        else:
-            r = ref[i*num_ref: (i+hz)*num_ref]
+    if (i+hz)*num_ref > len(ref):   # 如果不够取，那就取到最后的值，而此时hz将变小，须重新计算系数矩阵
+        r = ref[int(i*num_ref):]
+        hz_small = int(hz - ((i+hz)*num_ref-len(ref))/num_ref)  # 注意，除号/使int变成float，而在某些地方须用int
+
+        [Q_bb, T_bb, R_bb, C_bb, A_hh] = mpc.bbar(A_tilde, B_tilde, C_tilde, D_tilde, hz_small)
+        [H_bb, F_bbt] = mpc.gradient(Q_bb, T_bb, R_bb, C_bb, A_hh)
+        print(hz_small)
+    else:
+        # print(i*num_ref, (i+hz)*num_ref)
+        # print(ref)
+        r = ref[int(i*num_ref): int((i+hz)*num_ref)]
     
     X_r = np.concatenate((X_aug_T, r), axis=0)   # 行向量，不是矩阵，因此下面矩阵计算时须加[]使其变为矩阵
-    du = -np.matmul(np.matmul(np.linalg.inv(H_bb), [X_r]), F_bbt)
+    ft = np.transpose(np.matmul([X_r], F_bbt))   # 为矩阵乘法m x n · n x k故，须转置，但公式推导却不转置
+    du = -np.matmul(np.linalg.inv(H_bb), ft)
     
     init_U = init_U + du[0][0]  # 取预测的第一个ΔU
     
@@ -92,7 +94,7 @@ for i in range(sim_steps):
     
     # 用预测的U来计算状态量
     init_states = mpc.update_states(init_states, init_U)
-    states[i+1][:]= init_states
+    states[i+1][:] = init_states
 
 
 
@@ -194,7 +196,6 @@ plt.legend(loc='upper right', fontsize='small')
 wheel_base_half = 1.5
 wheel_radius = 0.4
 def update_plot(frame):
-    hz = mpc.hz
     Lf = mpc.lf
     Lr = mpc.lr
 

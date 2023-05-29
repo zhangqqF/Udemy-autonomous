@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import matplotlib.animation as animation
 import numpy as np
+# import support_file_car_zqq as sfc
 import support_files_car as sfc
 
 
@@ -18,7 +19,7 @@ Ts = support.Ts                     #
 outputs = support.outputs           # number of outputs (psi, y)，状态量个数
 hz = support.hz                     # horizon prediction period，预测周期
 x_dot = support.x_dot               # constant longitudinal velocity @ 20m/s
-time_length = support.time_lenght   # duration of the manoeuver
+time_length = support.time_length   # duration of the manoeuver
 
 
 t = np.arange(0, time_length+Ts, Ts)    # 时间向量
@@ -86,6 +87,7 @@ for i in range(0, sin_length-1):
     else:       # 最後如果不夠取，就取到末尾即可，這樣hz會少一項，的重新計算bb矩陣
         r = refSignals[k: len(refSignals)]
         hz -= 1
+        print(hz)
 
     if hz < support.hz:
         H_bb, F_bbt, C_bb, A_hh = support.mpc_simplification(Ad, Bd, Cd, Dd, hz)
@@ -173,41 +175,27 @@ car_predicted, = ax0.plot([], [], '-m', lw=1)
 car_determined, = ax0.plot([], [], '-r', lw=1)
 
 
-
 # 汽車局部運動圖
 ax1 = fig.add_subplot(gs[1, :], facecolor=(0.9, 0.9, 0.9))
-
 neutral_line, = ax1.plot([-50,50], [0,0], 'k', lw=1)
-
-# car_1_body, = ax1.plot([], [], 'k', lw=3)
-# car_1_axle_f, = ax1.plot([], [], 'k', lw=3)
-# car_1_axle_r, = ax1.plot([], [], 'k', lw=3)
-# car_1_wheel_fl, = ax1.plot([], [], 'r', lw=10)
-# car_1_wheel_fr, = ax1.plot([], [], 'r', lw=10)
-# car_1_wheel_rl, = ax1.plot([], [], 'r', lw=10)
-# car_1_wheel_rr, = ax1.plot([], [], 'r', lw=10)
-
-# # car_1_back_wheel, = ax1.plot([], [], 'r', lw=3)
-# # car_1_front_wheel, = ax1.plot([], [], 'r', lw=3)
-# car_1_extension_yaw, = ax1.plot([], [], '--k', lw=1)
-# car_1_extension_steer, = ax1.plot([], [], '--r', lw=1)
-
-# xmin = -5
-# xmax = 30
-# plt.xlim(xmin, xmax)
-
-
-# plt.ylim(-(xmax-xmin)/(3*(16/9)*2), (xmax-xmin)/(3*(16/9)*2))
+car_1_body, = ax1.plot([], [], 'k', lw=3)
+car_1_axle_f, = ax1.plot([], [], 'k', lw=3)
+car_1_axle_r, = ax1.plot([], [], 'k', lw=3)
+car_1_wheel_fl, = ax1.plot([], [], 'r', lw=10)
+car_1_wheel_fr, = ax1.plot([], [], 'r', lw=10)
+car_1_wheel_rl, = ax1.plot([], [], 'r', lw=10)
+car_1_wheel_rr, = ax1.plot([], [], 'r', lw=10)
+car_1_extension_yaw, = ax1.plot([], [], '--k', lw=1)
+car_1_extension_steer, = ax1.plot([], [], '--r', lw=1)
+xmin = -5
+xmax = 30
+plt.xlim(xmin, xmax)
+plt.ylim(-(xmax-xmin)/(3*(16/9)*2), (xmax-xmin)/(3*(16/9)*2))
 plt.ylabel('Y-distance [m]', fontsize=15)
 bbox_props_angle = dict(boxstyle='square', fc=(0.9,0.9,0.9), ec='k', lw=1)
 bbox_props_steer_angle = dict(boxstyle='square', fc=(0.9,0.9,0.9), ec='r', lw=1)
 yaw_angle_text = ax1.text(22, 1.5, '', size='20', color='k', bbox=bbox_props_angle)
 steer_angle_text = ax1.text(22, -2, '', size='20', color='r', bbox=bbox_props_steer_angle)
-
-
-
-
-
 
 
 # 方向盤轉角曲綫（即δ）
@@ -243,121 +231,70 @@ plt.legend(loc='upper right', fontsize='small')
 
 wheel_base_half = 1.5
 wheel_radius = 0.4
+Lf = support.lf
+Lr = support.lr
+# update函数可以调用全局变量
 def update_plot(frame):
-    hz = support.hz
-    Lf = support.lf
-    Lr = support.lr
 
-    # wheel_base_half = 1.5
-    # wheel_radius = 0.4
-
-    
     x = X_ref[frame]
     y = statesTotal[frame, 3]
     phi = statesTotal[frame,1]
     delta = U[frame]
 
-
+    # 轨迹跟踪图
     car_1.set_data([x - Lr*np.cos(phi), x + Lf*np.cos(phi)],
                    [y - Lr*np.sin(phi), y + Lf*np.sin(phi)])
     
 
-
-
-
-
-
-
-    car_1_body, = ax1.plot([], [], 'k', lw=3)
-    car_1_axle_f, = ax1.plot([], [], 'k', lw=3)
-    car_1_axle_r, = ax1.plot([], [], 'k', lw=3)
-    car_1_wheel_fl, = ax1.plot([], [], 'r', lw=10)
-    car_1_wheel_fr, = ax1.plot([], [], 'r', lw=10)
-    car_1_wheel_rl, = ax1.plot([], [], 'r', lw=10)
-    car_1_wheel_rr, = ax1.plot([], [], 'r', lw=10)
-
-    # car_1_back_wheel, = ax1.plot([], [], 'r', lw=3)
-    # car_1_front_wheel, = ax1.plot([], [], 'r', lw=3)
-    car_1_extension_yaw, = ax1.plot([], [], '--k', lw=1)
-    car_1_extension_steer, = ax1.plot([], [], '--r', lw=1)
-
-    xmin = x-10
-    xmax = x+30
-    plt.xlim(xmin, xmax)
-    plt.ylim(y-5, y+5)
-
-
-
-
-
-
-    
-    car_1_body.set_data([x - Lr*np.cos(phi), x + Lf*np.cos(phi)],
-                        [y - Lr*np.sin(phi), y + Lf*np.sin(phi)])
-
-    
-    # car_1_front_wheel.set_data([Lf*np.cos(phi) - 0.02*np.cos(phi + delta),
-    #                             Lf*np.cos(phi) + 0.02*np.cos(phi + delta)],
-    #                            [Lf*np.sin(phi) - 0.1*np.sin(phi + delta),
-    #                             Lf*np.sin(phi) + 0.1*np.sin(phi + delta)])
-
-    # car_1_back_wheel.set_data([-(Lr+0.05)*np.cos(phi),
-    #                            -(Lr-0.05)*np.cos(phi)],
-    #                           [(Lr+0.5)*np.sin(phi),
-    #                            (Lr-0.5)*np.sin(phi)])
-
-    
-
-    car_1_axle_f.set_data([x + Lf*np.cos(phi) - wheel_base_half*np.sin(phi),
-                           x + Lf*np.cos(phi) + wheel_base_half*np.sin(phi)],
-                          [y + Lf*np.sin(phi) - wheel_base_half*np.cos(phi),
-                           y + Lf*np.sin(phi) + wheel_base_half*np.cos(phi)])
-    
-    car_1_wheel_fl.set_data([x + Lf*np.cos(phi) - wheel_base_half*np.sin(phi) - wheel_radius*np.cos(phi+delta),
-                             x + Lf*np.cos(phi) - wheel_base_half*np.sin(phi) + wheel_radius*np.cos(phi+delta)],
-                            [y + Lf*np.sin(phi) + wheel_base_half*np.cos(phi) - wheel_radius*np.sin(phi+delta),
-                             y + Lf*np.sin(phi) + wheel_base_half*np.cos(phi) + wheel_radius*np.sin(phi+delta)])
-    
-    car_1_wheel_fr.set_data([x + Lf*np.cos(phi) + wheel_base_half*np.sin(phi) - wheel_radius*np.cos(phi+delta),
-                             x + Lf*np.cos(phi) + wheel_base_half*np.sin(phi) + wheel_radius*np.cos(phi+delta)],
-                            [y + Lf*np.sin(phi) - wheel_base_half*np.cos(phi) - wheel_radius*np.sin(phi+delta),
-                             y + Lf*np.sin(phi) - wheel_base_half*np.cos(phi) + wheel_radius*np.sin(phi+delta)])
-    
-    car_1_axle_r.set_data([x - (Lr*np.cos(phi) - wheel_base_half*np.sin(phi)),
-                           x - (Lr*np.cos(phi) + wheel_base_half*np.sin(phi))],
-                          [y - (Lr*np.sin(phi) - wheel_base_half*np.cos(phi)),
-                           y - (Lr*np.sin(phi) + wheel_base_half*np.cos(phi))])
-    
-    car_1_wheel_rl.set_data([x - (Lr*np.cos(phi) - wheel_base_half*np.sin(phi) - wheel_radius*np.cos(phi)),
-                             x - (Lr*np.cos(phi) - wheel_base_half*np.sin(phi) + wheel_radius*np.cos(phi))],
-                            [y - (Lr*np.sin(phi) - wheel_base_half*np.cos(phi) - wheel_radius*np.sin(phi)),
-                             y - (Lr*np.sin(phi) - wheel_base_half*np.cos(phi) + wheel_radius*np.sin(phi))])
-    
-    car_1_wheel_rr.set_data([x - (Lr*np.cos(phi) + wheel_base_half*np.sin(phi) - wheel_radius*np.cos(phi)),
-                             x - (Lr*np.cos(phi) + wheel_base_half*np.sin(phi) + wheel_radius*np.cos(phi))],
-                            [y - (Lr*np.sin(phi) + wheel_base_half*np.cos(phi) - wheel_radius*np.sin(phi)),
-                             y - (Lr*np.sin(phi) + wheel_base_half*np.cos(phi) + wheel_radius*np.sin(phi))])
-
-
-    
-
+    '''
+    汽车转向细节图
+    '''
+    # 车身
+    car_1_body.set_data([-Lr*np.cos(phi), Lf*np.cos(phi)],
+                        [-Lr*np.sin(phi), Lf*np.sin(phi)])
+    # 前轴
+    car_1_axle_f.set_data([Lf*np.cos(phi) - wheel_base_half*np.sin(phi),
+                           Lf*np.cos(phi) + wheel_base_half*np.sin(phi)],
+                          [Lf*np.sin(phi) - wheel_base_half*np.cos(phi),
+                           Lf*np.sin(phi) + wheel_base_half*np.cos(phi)])
+    # 左前轮
+    car_1_wheel_fl.set_data([Lf*np.cos(phi) - wheel_base_half*np.sin(phi) - wheel_radius*np.cos(phi+delta),
+                             Lf*np.cos(phi) - wheel_base_half*np.sin(phi) + wheel_radius*np.cos(phi+delta)],
+                            [Lf*np.sin(phi) + wheel_base_half*np.cos(phi) - wheel_radius*np.sin(phi+delta),
+                             Lf*np.sin(phi) + wheel_base_half*np.cos(phi) + wheel_radius*np.sin(phi+delta)])
+    # 右前轮
+    car_1_wheel_fr.set_data([Lf*np.cos(phi) + wheel_base_half*np.sin(phi) - wheel_radius*np.cos(phi+delta),
+                             Lf*np.cos(phi) + wheel_base_half*np.sin(phi) + wheel_radius*np.cos(phi+delta)],
+                            [Lf*np.sin(phi) - wheel_base_half*np.cos(phi) - wheel_radius*np.sin(phi+delta),
+                             Lf*np.sin(phi) - wheel_base_half*np.cos(phi) + wheel_radius*np.sin(phi+delta)])
+    # 后轴
+    car_1_axle_r.set_data([-(Lr*np.cos(phi) - wheel_base_half*np.sin(phi)),
+                           -(Lr*np.cos(phi) + wheel_base_half*np.sin(phi))],
+                          [-(Lr*np.sin(phi) - wheel_base_half*np.cos(phi)),
+                           -(Lr*np.sin(phi) + wheel_base_half*np.cos(phi))])
+    # 左后轮
+    car_1_wheel_rl.set_data([-(Lr*np.cos(phi) - wheel_base_half*np.sin(phi) - wheel_radius*np.cos(phi)),
+                             -(Lr*np.cos(phi) - wheel_base_half*np.sin(phi) + wheel_radius*np.cos(phi))],
+                            [-(Lr*np.sin(phi) - wheel_base_half*np.cos(phi) - wheel_radius*np.sin(phi)),
+                             -(Lr*np.sin(phi) - wheel_base_half*np.cos(phi) + wheel_radius*np.sin(phi))])
+    # 右后轮
+    car_1_wheel_rr.set_data([-(Lr*np.cos(phi) + wheel_base_half*np.sin(phi) - wheel_radius*np.cos(phi)),
+                             -(Lr*np.cos(phi) + wheel_base_half*np.sin(phi) + wheel_radius*np.cos(phi))],
+                            [-(Lr*np.sin(phi) + wheel_base_half*np.cos(phi) - wheel_radius*np.sin(phi)),
+                             -(Lr*np.sin(phi) + wheel_base_half*np.cos(phi) + wheel_radius*np.sin(phi))])
+    # steering角度延长线
     car_1_extension_yaw.set_data([0, (Lf+40)*np.cos(phi)],
                                   [0, (Lf+40)*np.sin(phi)])
-    
-    car_1_extension_steer.set_data([Lf*np.cos(phi),
-                                          Lf*np.cos(phi) + (0.5+40)*np.cos(phi + delta)],
-                                         [Lf*np.sin(phi),
-                                          Lf*np.sin(phi) + (0.5+40)*np.sin(phi + delta)])
-
-
+    # 汽车航向角延长线
+    car_1_extension_steer.set_data([Lf*np.cos(phi), Lf*np.cos(phi) + (0.5+40)*np.cos(phi + delta)],
+                                   [Lf*np.sin(phi), Lf*np.sin(phi) + (0.5+40)*np.sin(phi + delta)])
+    # steering和φ角度值显示
     yaw_angle_text.set_text('yaw: %s rad' %str(round(phi, 2)))
     steer_angle_text.set_text('steer: %s rad' %str(round(delta, 2)))
 
 
     ret = [car_1,
            car_1_body,
-        #    car_1_front_wheel,
-        #    car_1_back_wheel,
            car_1_axle_f,
            car_1_wheel_fl,
            car_1_wheel_fr,

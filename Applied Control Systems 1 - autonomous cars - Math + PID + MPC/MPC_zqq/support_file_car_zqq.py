@@ -31,7 +31,7 @@ class MPC_Controller:
         self.R = np.matrix('1')            # weight for inputs
 
         self.outputs = 2     # numbers of the output. [y φ]
-        self.hz = 20         # horizon period, also known as prediction horizon
+        # self.hz = 20         # horizon period, also known as prediction horizon
         self.dx = 20         # car's longitudinal velocity
         self.lane_width = 7
         self.lanes = 5
@@ -110,7 +110,7 @@ class MPC_Controller:
         return x, y, phi
     
 
-    def combine_ref(self,reflist):
+    def combine_ref(self, reflist):
         '''
         合并参考信号，此前参考信号已离散化为行向量
         '''
@@ -148,7 +148,7 @@ class MPC_Controller:
         return a,b,c,d,e,f
     
 
-    def state_ABCD(self,a,b,c,d,e,f):
+    def state_ABCD(self, a, b, c, d, e, f):
         '''
         增加dφ和dy状态量后的系数矩阵
         '''
@@ -163,10 +163,10 @@ class MPC_Controller:
                       [0, 0, 0, 1]])
         D = 0
 
-        return A,B,C,D
+        return A, B, C, D
     
 
-    def discrete(self,A,B,C,D):
+    def discrete(self, A, B, C, D):
         '''
         离散化后的系数矩阵
         '''
@@ -195,14 +195,13 @@ class MPC_Controller:
         C_tilde = np.concatenate((Cd, np.zeros((Cd.shape[0], Bd.shape[1]))), axis=1)
         D_tilde = Dd
 
-        return A_tilde,B_tilde,C_tilde,D_tilde
+        return A_tilde, B_tilde, C_tilde, D_tilde
 
 
-    def bbar(self,A_tilde,B_tilde,C_tilde,D_tilde):
+    def bbar(self, A_tilde, B_tilde, C_tilde, D_tilde, hz):
         '''
         全误差优化矩阵
         '''
-        hz = self.hz
         Q = self.Q
         S = self.S
         R = self.R
@@ -233,10 +232,10 @@ class MPC_Controller:
                     AB = np.matmul(np.linalg.matrix_power(A_tilde, i-j), B_tilde)
                     C_bb[B_tilde.shape[0]*i:B_tilde.shape[0]*i+B_tilde.shape[0], B_tilde.shape[1]*j:B_tilde.shape[1]*j+B_tilde.shape[1]] = AB
         
-        return Q_bb,T_bb,R_bb,C_bb,A_hh
+        return Q_bb, T_bb, R_bb, C_bb, A_hh
     
 
-    def gradient(self,Q_bb,T_bb,R_bb,C_bb,A_hh):
+    def gradient(self, Q_bb, T_bb, R_bb, C_bb, A_hh):
         '''
         求Δδ的梯度矩阵
         '''
@@ -262,76 +261,18 @@ class MPC_Controller:
         phi = init_states[2]
         y = init_states[3] 
         
-        # 
-        ddy = a*dy + b*dphi + e*init_U
-        ddphi = c*dy + d*dphi + f*init_U
-        dphi = dphi
-        dy = dy*np.cos(phi) + dx*np.sin(phi)
-        
-        # 通过积分计算并更新状态矩阵
-        dy = dy + ddy*Ts
-        dphi = dphi + ddphi*Ts
-        phi = phi + dphi*Ts
-        y = y + dy*Ts
-        
-        update_states = [dy, dphi, phi, y]
-        return update_states    
-
-
-
-
-
-
-
-
-
-
-    
-    def open_loop_new_states(self, states, delta):
-        '''
-        This function computes the new state vector for one sample time later
-        '''
-        m=self.m
-        Iz=self.Iz
-        Caf=self.Cf
-        Car=self.Cr
-        lf=self.lf
-        lr=self.lr
-        Ts=self.Ts
-        x_dot=self.dx
-
-        current_states = states
-        new_states = current_states
-        y_dot = new_states[0]
-        psi = new_states[1]
-        psi_dot = new_states[2]
-        y = new_states[3]
-
         loop = 30 # 将采样时间再分成30份，更加细化
         for i in range(0, loop):
-            a = -(2*self.Cf + 2*self.Cr) / (self.m * self.dx)
-            b = ((-2*Caf*lf + 2*Car*lr) / x_dot*m) - x_dot
-            c = (-2*Caf*lf + 2*Car*lr) / x_dot*Iz
-            d = (-2*Caf*lf**2 - 2*Car*lr**2) / x_dot*m
-            e = 2*Caf / m
-            f = 2*Caf*lf / Iz
+            ddy = a*dy + b*dphi + e*init_U
+            ddphi = c*dy + d*dphi + f*init_U
+            dphi = dphi
+            dy = dy*np.cos(phi) + dx*np.sin(phi)
             
-            y_ddot = a*y_dot + b*psi_dot + e*delta
-            psi_dot = psi_dot
-            psi_ddot = c*y_ddot + d*psi_dot + f*delta
-            y_dot = y_dot*np.cos(psi) + x_dot*np.sin(psi)
-
-            # 更新
-            y_dot = y_dot + y_ddot*Ts/loop
-            psi = psi + psi_dot*Ts/loop
-            psi_ddot = psi_ddot + psi_dot*Ts/loop
-            y = y + y_dot*Ts/loop
-
-        # Take the last states
-        new_states[0] = y_dot
-        new_states[1] = psi
-        new_states[2] = psi_dot
-        new_states[3] = y
-
-        return new_states
-    
+            # 通过积分计算并更新状态矩阵
+            dy = dy + ddy*Ts/loop
+            dphi = dphi + ddphi*Ts/loop
+            phi = phi + dphi*Ts/loop
+            y = y + dy*Ts/loop
+        
+        update_states = [dy, phi, dphi, y]
+        return update_states    

@@ -41,4 +41,5 @@ A1,A2,A3,A4,A,B,C,D,Ad, Bd, Cd, Dd=support.state_space()
 # However, in the end of the simulation, the horizon period (hz) will start decreasing.
 # That is when the matrices need to be regenerated (done inside the simulation loop)
 Hdb,Fdbt,Cdb,Adc, A_aug,B_aug,C_aug,D_aug,Qdb,Tdb,Rdb=support.mpc_simplification(Ad,Bd,Cd,Dd,20)
-print(Fdbt)
+print(Hdb.shape[0], Hdb.shape[1])
+print(Fdbt.shape[0], Fdbt.shape[1])
