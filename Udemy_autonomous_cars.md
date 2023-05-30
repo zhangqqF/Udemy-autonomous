@@ -231,12 +231,5 @@ $$
 
 ## Numpy
 
-```python
-import numpy as np
 
-# size
-# np.size(A)  行x列
-# np.size(A, 0) 行
-# np.size(A, 1) 列
-```
 

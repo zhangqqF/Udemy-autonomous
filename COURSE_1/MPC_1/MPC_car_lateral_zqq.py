@@ -39,7 +39,7 @@ for i in range(0, len(refSignals), outputs):
 
 # Load the initial states
 # float and not integer
-y = 0.
+y = Y_ref[0] + 10
 y_dot = 0.
 phi = 0.
 phi_dot = 0.
@@ -72,23 +72,21 @@ Ad, Bd, Cd, Dd = support.state_space()
 H_bb, F_bbt, C_bb, A_hh = support.mpc_simplification(Ad, Bd, Cd, Dd, hz)
 
 
-
 # 預測
 k = 0
-for i in range(0, sin_length-1):
+for i in range(0, sin_length):
     X_tilde_k = np.transpose([np.concatenate((states, [U0]), axis=0)])  # [dy φ dφ y δ]_0 注意行向量只能axis=0，並擴展列，與矩陣連接并不相同
-    
+
 
     # 从参考信号中取出一小段（长度为hz）信号
-    # 儅hz=1時，則每次取一組參考值，剛好與i同時取完
-    k = k + outputs # Num_state=2，不取φ_ref_0, y_ref_0
+    # k = k + outputs
     if (k + outputs*hz) <= len(refSignals): # refSinals=[φ_ref_0, y_ref_0, φ_ref_0.02, y_ref_0.02, ...]
         r = refSignals[k: k + outputs*hz]
-    else:       # 最後如果不夠取，就取到末尾即可，這樣hz會少一項，的重新計算bb矩陣
-        r = refSignals[k: len(refSignals)]
+    else:
+        r = refSignals[k: ]
         hz -= 1
+        print(hz)
 
-    if hz < support.hz:
         H_bb, F_bbt, C_bb, A_hh = support.mpc_simplification(Ad, Bd, Cd, Dd, hz)
 
 
@@ -96,7 +94,7 @@ for i in range(0, sin_length-1):
     X_r = np.concatenate((np.transpose(X_tilde_k)[0][:], r), axis=0) # len(矩陣)=行數
     ft = np.matmul([X_r], F_bbt)
     du = -np.matmul(np.linalg.inv(H_bb), np.transpose(ft))
-
+ 
 
     # 帶入預測公式計算預測值
     # x_aug_opt = np.matmul(C_bb, du) + np.matmul(A_hh, X_tilde_k)

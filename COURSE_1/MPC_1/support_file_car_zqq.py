@@ -44,7 +44,7 @@ class SupportFilesCar:
 
         self.r = 4
         self.f = 0.01
-        self.time_lenght = 10
+        self.time_length = 10
         self.car_distance = 30
 
         # --------------------------- PID ---------------------------
@@ -207,7 +207,7 @@ class SupportFilesCar:
             for j in range(0, Hz):
                 if j <= i:
                     AB = np.matmul(np.linalg.matrix_power(A_tilde, i-j), B_tilde)
-                    C_bbar[B_tilde.shape[0]*i:B_tilde.shape[0]*(i+1), B_tilde.shape[1]*i:B_tilde.shape[1]*(i+1)] = AB
+                    C_bbar[B_tilde.shape[0]*i:B_tilde.shape[0]*(i+1), B_tilde.shape[1]*j:B_tilde.shape[1]*(j+1)] = AB
 
             A_hhat[A_tilde.shape[0]*i:A_tilde.shape[0]*(i+1), :] = np.linalg.matrix_power(A_tilde, i+1)
 
