@@ -131,13 +131,14 @@ for i in range(0,sim_length-1):
     Y_opt=np.transpose((Y_opt))[0]
     Y_opt_total[i+1][0:hz]=Y_opt
 
-    # exit()
+
 
     # Update the real inputs
     U1=U1+du[0][0]
 
     ######################### PID #############################################
     PID_switch=constants[17]
+    PID_switch=0
 
     if PID_switch==1:
         if i==0:
@@ -183,7 +184,7 @@ for i in range(0,sim_length-1):
     # Compute new states in the open loop system (interval: Ts/30)
     states=support.open_loop_new_states(states,U1)
     statesTotal[i+1][0:len(states)]=states
-    # print(i)
+
 
 ################################ ANIMATION LOOP ###############################
 # print(Y_opt_total)
@@ -336,7 +337,7 @@ plt.legend(loc='upper right',fontsize='small')
 
 
 car_ani=animation.FuncAnimation(fig, update_plot,
-    frames=frame_amount,interval=20,repeat=True,blit=True)
+    frames=frame_amount,interval=20,repeat=False,blit=True)
 plt.show()
 
 # # Matplotlib 3.3.3 needed - comment out plt.show()
