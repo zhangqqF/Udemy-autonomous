@@ -263,4 +263,5 @@ ani = animation.FuncAnimation(fig, update_plot,
                               interval=20,
                               repeat=False,
                               blit=True)
-plt.show()
+# plt.show()
+ani.save('MPC_car_fail.gif', writer='pillow')

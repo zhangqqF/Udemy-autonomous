@@ -74,7 +74,7 @@ H_bb, F_bbt, C_bb, A_hh = support.mpc_simplification(Ad, Bd, Cd, Dd, hz)
 
 # 預測
 k = 0
-for i in range(0, sin_length):
+for i in range(0, sin_length-1):
     X_tilde_k = np.transpose([np.concatenate((states, [U0]), axis=0)])  # [dy φ dφ y δ]_0 注意行向量只能axis=0，並擴展列，與矩陣連接并不相同
 
 

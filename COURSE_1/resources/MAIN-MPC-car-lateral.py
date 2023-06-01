@@ -138,7 +138,7 @@ for i in range(0,sim_length-1):
 
     ######################### PID #############################################
     PID_switch=constants[17]
-    PID_switch=0
+    # PID_switch=0
 
     if PID_switch==1:
         if i==0:
